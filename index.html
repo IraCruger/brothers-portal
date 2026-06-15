@@ -196,6 +196,8 @@
   .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:24px 16px;overflow:auto}
   .modal-bg.show{display:flex}
   .modal{background:#fff;border-radius:12px;width:100%;max-width:404px;margin:auto;padding:26px 24px 24px;position:relative;box-shadow:0 16px 50px rgba(0,0,0,.3)}
+  #legalContent h4{margin:16px 0 4px;font-size:15px;color:var(--t1)}
+  #legalContent p{margin:0 0 10px}
   .modal-x{position:absolute;top:12px;right:14px;border:none;background:none;font-size:24px;color:var(--t2);line-height:1}
   .modal h2{font-size:22px;margin-bottom:4px}
   .modal .sub{font-size:13.5px;color:var(--t2);margin-bottom:18px;line-height:1.45}
@@ -234,7 +236,6 @@
 <nav class="nav">
   <div class="nav-inner">
     <div class="logo" onclick="goFeed()" title="Brothers · Portal de serviços">Brothers</div>
-    <span style="font-size:10px;color:var(--t3);font-weight:700;margin:0 0 0 3px;align-self:center" title="versão do arquivo">v2</span>
     <div class="nav-search">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input id="search" type="text" placeholder="Pesquisar serviços ou profissionais" autocomplete="off">
@@ -298,6 +299,19 @@
 
 <!-- ONBOARDING -->
 <div id="onboarding"></div>
+
+<footer style="text-align:center;padding:22px 16px;margin-top:8px;color:var(--t2);font-size:12.5px;border-top:1px solid var(--line2);line-height:1.9">
+  <div><a onclick="openLegal('privacidade')" style="color:var(--t2);cursor:pointer;text-decoration:underline">Políticas de Privacidade</a> · <a onclick="openLegal('cookies')" style="color:var(--t2);cursor:pointer;text-decoration:underline">Políticas de Cookies</a> · <a onclick="openLegal('termos')" style="color:var(--t2);cursor:pointer;text-decoration:underline">Termos de Serviço</a></div>
+  <div style="margin-top:4px">Brothers © 2026 · Todos os direitos reservados — Prático Digital</div>
+</footer>
+
+<!-- LEGAL MODAL -->
+<div class="modal-bg" id="legalModal">
+  <div class="modal" style="max-width:680px;max-height:85vh;overflow:auto;text-align:left">
+    <button class="modal-x" onclick="closeLegal()" aria-label="Fechar">&times;</button>
+    <div id="legalContent"></div>
+  </div>
+</div>
 
 <!-- AUTH MODAL -->
 <div class="modal-bg" id="authModal">
@@ -375,6 +389,7 @@ const CATS=[
   {name:"Casa & Jardim", subs:[]},
   {name:"Informática & TI", subs:[]},
   {name:"Marketing & Vendas", subs:[]},
+  {name:"Publicidade & Comunicação", subs:[]},
   {name:"Transporte", subs:[]},
   {name:"Festas & Eventos", subs:[]},
   {name:"Beleza & Bem-Estar", subs:[]},
@@ -528,7 +543,7 @@ function showView(v){
 
 function invitesPanelHTML(){
   const link=inviteLinkFor(session.name||"");
-  const wa="https://wa.me/?text="+encodeURIComponent("Olá! 😊\n\nQuero te convidar para participar do Portal Brothers, um espaço criado para irmãos divulgarem seus serviços e serem encontrados por outros irmãos da nossa comunidade.\n\nCadastre-se gratuitamente pelo meu link:\n\n"+link+"\n\nSerá muito bom ter você conosco! 🤝");
+  const wa="https://wa.me/?text="+encodeURIComponent("Olá! 😊\n\nQuero te convidar para participar do Portal Brothers, um espaço criado para irmãos divulgarem seus serviços e serem encontrados por outros irmãos da nossa comunidade de discípulos.\n\nCadastre-se gratuitamente pelo meu link:\n\n"+link+"\n\nSerá muito bom ter você conosco! 🤝\n\nDeus Abençoe!");
   const mail="mailto:?subject="+encodeURIComponent("Convite para o Brothers")+"&body="+encodeURIComponent("Você está convidado para o Brothers, portal de serviços da comunidade. Cadastre-se pelo meu link de convite:\n\n"+link);
   return '<div class="panel pf-section">'+
     '<h3>Seu link de convite</h3>'+
@@ -677,7 +692,8 @@ function renderAuth(){
        '<div class="field"><label>Estado (UF)</label><input id="auState" type="text" maxlength="2" placeholder="Ex.: RS" style="text-transform:uppercase"></div></div>'+
        '<div class="field"><label>Congregação</label><input id="auCong" type="text" placeholder="Que você participa"></div>'+
        '<div class="field"><label>Senha</label><div class="pass-wrap"><input id="auPass" type="password" placeholder="Crie uma senha (com 1 símbolo)"><button type="button" class="pass-toggle" onclick="togglePass(\'auPass\',this)" aria-label="Mostrar senha">👁</button></div></div>'+
-       '<div class="field"><label>Confirmar senha</label><div class="pass-wrap"><input id="auPass2" type="password" placeholder="Repita a senha"><button type="button" class="pass-toggle" onclick="togglePass(\'auPass2\',this)" aria-label="Mostrar senha">👁</button></div></div>')
+       '<div class="field"><label>Confirmar senha</label><div class="pass-wrap"><input id="auPass2" type="password" placeholder="Repita a senha"><button type="button" class="pass-toggle" onclick="togglePass(\'auPass2\',this)" aria-label="Mostrar senha">👁</button></div></div>'+
+       '<label style="display:flex;gap:8px;align-items:flex-start;margin:6px 0 2px;font-size:12.5px;color:var(--t2);line-height:1.45;cursor:pointer"><input type="checkbox" id="auConsent" style="margin-top:2px;flex-shrink:0"><span>Li e concordo com as <a onclick="openLegal(\'privacidade\')" style="color:var(--blue);cursor:pointer">Políticas de Privacidade</a>, <a onclick="openLegal(\'cookies\')" style="color:var(--blue);cursor:pointer">Políticas de Cookies</a> e <a onclick="openLegal(\'termos\')" style="color:var(--blue);cursor:pointer">Termos de Serviço</a>, e <b style="color:var(--t1)">autorizo a publicação dos meus dados</b> no portal Brothers.</span></label>')
       :
       ('<div class="field"><label>'+(USE_SUPABASE?"E-mail ou telefone":"E-mail")+'</label><input id="auEmail" type="text" placeholder="'+(USE_SUPABASE?"E-mail ou telefone cadastrado":"voce@email.com")+'"></div>'+
        '<div class="field"><label>Senha</label><div class="pass-wrap"><input id="auPass" type="password" placeholder="Sua senha"><button type="button" class="pass-toggle" onclick="togglePass(\'auPass\',this)" aria-label="Mostrar senha">👁</button></div></div>'+
@@ -712,6 +728,7 @@ function startSignup(){
   if(pass.length<4)return authErr("A senha precisa ter ao menos 4 caracteres.");
   if(!/[^A-Za-z0-9 ]/.test(pass))return authErr("A senha precisa ter ao menos um caractere especial (ex.: ! @ # $ %).");
   if(pass!==pass2)return authErr("As senhas não conferem. Verifique e tente de novo.");
+  if(!(document.getElementById("auConsent")||{}).checked)return authErr("Para continuar, marque a caixa autorizando o uso dos dados e o aceite dos termos.");
   authState.code=genCode();authState.pending={name,phone,email,city,cong,pass};authState.step="code";renderAuth();
 }
 window.startSignup=startSignup;
@@ -889,7 +906,7 @@ function startOnboarding(){
       '<div class="field"><label>Especialidade <span style="font-weight:400;color:var(--t2)">(título do seu perfil)</span></label><input id="obSpec" value="'+esc(v.spec||"")+'" placeholder="Ex.: Pintura residencial e comercial"></div>'+
       '<div class="field"><label>Visão</label><div class="lvl-hint">Em 1–2 frases: que transformação você gera para o cliente?</div><textarea id="obDesc1" maxlength="210" oninput="updCount(this,\'cntD1\',210)" placeholder="Ex. (pintor): Deixamos sua casa com um acabamento impecável e duradouro, transformando ambientes com uma pintura limpa, bem-feita e sem dor de cabeça.">'+esc(pd.v1)+'</textarea><div class="char-count" id="cntD1">'+(pd.v1||"").length+'/210</div></div>'+
       '<div class="field"><label>Como fazemos</label><div class="lvl-hint">De que forma você entrega esse resultado? (opcional)</div><textarea id="obDesc2" maxlength="210" oninput="updCount(this,\'cntD2\',210)" placeholder="Ex. (pintor): Avaliamos o ambiente, preparamos as superfícies (lixar, corrigir trincas e proteger os móveis) e aplicamos tinta de qualidade com técnica e acabamento caprichado.">'+esc(pd.v2)+'</textarea><div class="char-count" id="cntD2">'+(pd.v2||"").length+'/210</div></div>'+
-      '<div class="field"><label>O que entregamos</label><div class="lvl-hint">Liste seus serviços/entregas — um por linha. (opcional)</div><textarea id="obDesc3" maxlength="350" oninput="updCount(this,\'cntD3\',350)" placeholder="Ex. (pintor):&#10;Pintura de paredes internas e externas&#10;Texturas e efeitos decorativos&#10;Preparação e correção de superfícies&#10;Pintura de portas e esquadrias&#10;Limpeza pós-obra">'+esc(pd.v3)+'</textarea><div class="char-count" id="cntD3">'+(pd.v3||"").length+'/350</div></div>'+
+      '<div class="field"><label>O que entregamos</label><div class="lvl-hint">Liste seus serviços/entregas — um por linha. (opcional)</div><textarea id="obDesc3" maxlength="1000" oninput="updCount(this,\'cntD3\',1000)" placeholder="Ex. (pintor):&#10;Pintura de paredes internas e externas&#10;Texturas e efeitos decorativos&#10;Preparação e correção de superfícies&#10;Pintura de portas e esquadrias&#10;Limpeza pós-obra">'+esc(pd.v3)+'</textarea><div class="char-count" id="cntD3">'+(pd.v3||"").length+'/1000</div></div>'+
       '<div class="row2">'+
         '<div class="field"><label>WhatsApp / Telefone</label><input id="obPhone" value="'+esc(v.phone||session.phone||"")+'" placeholder="Ex.: (51) 99999-9999"></div>'+
         '<div class="field"><label>E-mail</label><input id="obEmail" value="'+esc(v.email||session.email||"")+'" placeholder="voce@email.com"></div>'+
@@ -973,6 +990,7 @@ async function startSignupReal(){
   if(pass.length<6)return authErr("A senha precisa ter ao menos 6 caracteres.");
   if(!/[^A-Za-z0-9 ]/.test(pass))return authErr("A senha precisa ter ao menos um caractere especial (ex.: ! @ # $ %).");
   if(pass!==pass2)return authErr("As senhas não conferem.");
+  if(!(document.getElementById("auConsent")||{}).checked)return authErr("Para continuar, marque a caixa autorizando o uso dos dados e o aceite dos termos.");
   authErr("Enviando código…");
   const indicadoPor=inviteName||"Fundador";
   try{
@@ -1102,6 +1120,56 @@ window.openNotifs=openNotifs;
 function setBadge(id,n){var b=document.getElementById(id);if(!b)return;if(n>0){b.textContent=n>9?"9+":String(n);b.style.display="";}else b.style.display="none";}
 async function refreshBadges(){var nm=document.getElementById("navMsg"),nb=document.getElementById("navBell");if(!session){if(nm)nm.style.display="none";if(nb)nb.style.display="none";return;}if(nm)nm.style.display="";if(nb)nb.style.display="";try{var msgs=await fetchMyMessages();setBadge("msgBadge",msgs.filter(m=>m.ts>getSeen("msg")).length);}catch(e){}try{var nots=await fetchMyNotifs();setBadge("bellBadge",nots.filter(n=>n.ts>getSeen("bell")).length);}catch(e){}}
 window.refreshBadges=refreshBadges;
+
+/* paginas legais */
+const LEGAL={
+  privacidade:{title:"Política de Privacidade", body:`
+<p style="color:var(--t2);font-size:13px;margin:0 0 14px">Última atualização: junho de 2026</p>
+<p>O <b>Brothers</b> é um portal comunitário operado pela <b>Prático Digital</b> que conecta irmãos prestadores de serviços a quem procura indicações de confiança. Esta política explica como tratamos seus dados, em conformidade com a Lei Geral de Proteção de Dados (LGPD).</p>
+<h4>Quais dados coletamos</h4>
+<p>Ao criar seu perfil, coletamos as informações que você nos fornece: nome, e-mail, telefone/WhatsApp, cidade, congregação, foto, imagem de capa, descrição dos seus serviços, categoria, redes (Instagram, LinkedIn e site) e o nome de quem indicou você.</p>
+<h4>Para que usamos</h4>
+<p>Usamos esses dados unicamente para exibir o seu perfil no diretório da comunidade, permitindo que outros membros conheçam o seu trabalho e entrem em contato com você.</p>
+<h4>Base legal</h4>
+<p>O tratamento dos seus dados é feito com base no seu <b>consentimento</b>, manifestado no momento do cadastro.</p>
+<h4>Compartilhamento</h4>
+<p>As informações do seu perfil ficam <b>visíveis aos demais usuários</b> do portal — essa é a própria finalidade do serviço. <b>Não vendemos</b> seus dados a terceiros.</p>
+<h4>Armazenamento e segurança</h4>
+<p>Seus dados são guardados em servidores seguros. Os e-mails de verificação são enviados por um provedor de e-mail. Adotamos medidas para proteger suas informações.</p>
+<h4>Seus direitos</h4>
+<p>A qualquer momento você pode acessar, corrigir, atualizar ou excluir seus dados, além de revogar o consentimento. Para isso, edite seu perfil dentro do portal ou fale conosco.</p>
+<h4>Contato</h4>
+<p>Dúvidas ou solicitações sobre seus dados: <b>codigobrothers@gmail.com</b>.</p>`},
+  cookies:{title:"Política de Cookies", body:`
+<p style="color:var(--t2);font-size:13px;margin:0 0 14px">Última atualização: junho de 2026</p>
+<p>Esta política explica como o <b>Brothers</b> utiliza armazenamento no seu navegador.</p>
+<h4>O que utilizamos</h4>
+<p>Usamos o <b>armazenamento local</b> (localStorage) do seu navegador para manter você conectado à sua conta e lembrar preferências do portal, como quais avisos e notificações você já visualizou.</p>
+<h4>O que não utilizamos</h4>
+<p>Não utilizamos cookies de publicidade nem rastreadores de terceiros. O portal não exibe anúncios.</p>
+<h4>Como controlar</h4>
+<p>Você pode limpar esses dados a qualquer momento nas configurações do seu navegador. Ao fazer isso, talvez seja necessário entrar novamente na sua conta.</p>
+<h4>Contato</h4>
+<p>Dúvidas: <b>codigobrothers@gmail.com</b>.</p>`},
+  termos:{title:"Termos de Serviço", body:`
+<p style="color:var(--t2);font-size:13px;margin:0 0 14px">Última atualização: junho de 2026</p>
+<p>Ao se cadastrar e utilizar o <b>Brothers</b>, você concorda com estes Termos de Serviço.</p>
+<h4>Sobre o portal</h4>
+<p>O Brothers é um diretório comunitário, de acesso por convite, que conecta irmãos prestadores de serviços a quem procura. O portal apenas <b>aproxima as pessoas</b>: a negociação e a contratação dos serviços acontecem diretamente entre os membros.</p>
+<h4>Suas responsabilidades</h4>
+<p>Você se compromete a fornecer informações verdadeiras, manter seus dados atualizados e ter conduta respeitosa com os demais membros. Você é responsável pelo conteúdo que publica no seu perfil.</p>
+<h4>Limitação de responsabilidade</h4>
+<p>O Brothers e a Prático Digital não se responsabilizam pela qualidade, execução ou resultado dos serviços contratados entre os membros, nem por acordos firmados entre as partes.</p>
+<h4>Cancelamento</h4>
+<p>Você pode editar ou excluir seu perfil a qualquer momento. Também podemos suspender perfis que violem estes termos ou prejudiquem a comunidade.</p>
+<h4>Alterações</h4>
+<p>Estes termos podem ser atualizados. Mudanças relevantes serão comunicadas no portal.</p>
+<h4>Contato</h4>
+<p>Dúvidas: <b>codigobrothers@gmail.com</b>.</p>`}
+};
+function openLegal(t){const l=LEGAL[t];if(!l)return;document.getElementById("legalContent").innerHTML='<h2 style="margin:0 0 14px;font-size:20px">'+l.title+'</h2><div style="font-size:14px;line-height:1.6;color:var(--t1)">'+l.body+'</div>';document.getElementById("legalModal").classList.add("show");}
+function closeLegal(){document.getElementById("legalModal").classList.remove("show");}
+window.openLegal=openLegal;window.closeLegal=closeLegal;
 
 /* init */
 document.getElementById("sCats").textContent=CATS.length;
