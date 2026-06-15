@@ -244,6 +244,9 @@
       <button class="nav-item active" id="navHome" onclick="goFeed()">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span>Início</span>
       </button>
+      <button class="nav-item" id="navHelp" onclick="openHelp()" title="Ajuda e dúvidas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>Ajuda</span>
+      </button>
       <button class="nav-item" id="navMsg" onclick="openMessages()" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Mensagens</span><span class="nav-badge" id="msgBadge" style="display:none"></span>
       </button>
@@ -1244,6 +1247,27 @@ const LEGAL={
 function openLegal(t){const l=LEGAL[t];if(!l)return;document.getElementById("legalContent").innerHTML='<h2 style="margin:0 0 14px;font-size:20px">'+l.title+'</h2><div style="font-size:14px;line-height:1.6;color:var(--t1)">'+l.body+'</div>';document.getElementById("legalModal").classList.add("show");}
 function closeLegal(){document.getElementById("legalModal").classList.remove("show");}
 window.openLegal=openLegal;window.closeLegal=closeLegal;
+
+/* central de ajuda (FAQ) */
+const FAQ=[
+  {q:"Quem pode usar a plataforma?", a:"O Brothers é um espaço da nossa comunidade de discípulos. O acesso é por convite: você entra pelo link de um irmão que já participa. É gratuito e feito para irmãos divulgarem seus serviços e serem encontrados por outros irmãos."},
+  {q:"Os meus dados estão seguros nessa plataforma?", a:"Sim. Suas informações ficam guardadas em servidores seguros e são usadas apenas para exibir o seu perfil no portal, para que outros irmãos encontrem o seu trabalho. Não vendemos seus dados. Você pode ver os detalhes na Política de Privacidade (no rodapé da página) e, a qualquer momento, editar ou excluir suas informações."},
+  {q:"Como faço para excluir o meu perfil?", a:"Entre na sua conta, abra o seu perfil e toque em \"Editar perfil\". No final do formulário há a opção <b>Excluir meu perfil</b>. Ao confirmar, seu perfil sai do portal e não pode ser desfeito (sua conta continua, mas sem perfil publicado)."},
+  {q:"Esqueci minha senha. Como faço para recuperar?", a:"Na tela de entrar, toque em <b>\"Esqueci minha senha\"</b>. Você receberá um código no seu e-mail; digite esse código e crie uma senha nova."},
+  {q:"Estou solicitando o código de segurança e está dando erro.", a:"O código é enviado por e-mail e pode levar um ou dois minutos para chegar — confira também a caixa de spam/lixo eletrônico. Por segurança, há um limite de envios: se aparecer um aviso pedindo para aguardar, espere cerca de 1 minuto e peça o código de novo. Verifique também se o e-mail foi digitado corretamente."},
+  {q:"Não encontrei a minha categoria. E agora?", a:"Por enquanto, escolha a categoria mais próxima do seu serviço. O Brothers ainda é um projeto em fase <b>beta</b> (em construção): estamos observando as reais necessidades dos irmãos para, em seguida, ampliar as categorias e funcionalidades — sempre buscando servir a comunidade da melhor forma. A sua escolha já nos ajuda a entender o que incluir."},
+  {q:"Posso compartilhar o perfil de um irmão com um amigo que não é da comunidade?", a:"Pode sim! O perfil pode ser compartilhado com qualquer pessoa, mesmo que não seja da comunidade. Abra o perfil do irmão e toque no botão <b>Compartilhar</b>: ele já monta uma mensagem com o link, pronta para enviar pelo WhatsApp. Como o link abre o perfil para qualquer pessoa, você também pode copiá-lo e enviar por e-mail ou outro aplicativo, se preferir."}
+];
+function openHelp(){
+  var html='<h2 style="margin:0 0 6px;font-size:20px">Central de Ajuda</h2>';
+  html+='<p style="color:var(--t2);font-size:13px;margin:0 0 16px">Tire suas dúvidas sobre o Brothers. Não achou o que procurava? Fale com a gente: <b>codigobrothers@gmail.com</b>.</p>';
+  html+='<div style="font-size:14px;line-height:1.6;color:var(--t1)">';
+  FAQ.forEach(function(f){html+='<h4 style="margin:16px 0 4px;font-size:15px;color:var(--t1)">'+f.q+'</h4><p style="margin:0 0 10px">'+f.a+'</p>';});
+  html+='</div>';
+  document.getElementById("legalContent").innerHTML=html;
+  document.getElementById("legalModal").classList.add("show");
+}
+window.openHelp=openHelp;
 
 /* init */
 document.getElementById("sCats").textContent=CATS.length;
