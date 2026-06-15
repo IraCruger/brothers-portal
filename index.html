@@ -426,9 +426,32 @@ function initials(n){const w=(n||"?").replace(/[^\wÀ-ÿ ]/g," ").trim().split(/
 function hash(s){let h=0;for(const c of (s||""))h=(h*31+c.charCodeAt(0))>>>0;return h;}
 function aviColor(n){return AVI[hash(n)%AVI.length];}
 function seedRating(n){const h=hash(n+"r");const r=Math.round((4.3+(h%70)/100)*10)/10;const c=5+(h%56);return{r:r>5?5:r,c};}
-function ratingOf(d){return d.fresh?{r:0,c:0}:seedRating(d.name);}
+function ratingOf(d){return {r:d.rating||0,c:d.rateCount||0};}
 function starsHTML(r){const pct=(r/5*100).toFixed(1);return '<span class="rate"><span class="rate-bg">★★★★★</span><span class="rate-fg" style="width:'+pct+'%">★★★★★</span></span>';}
-function ratingHTML(d){const rt=ratingOf(d);if(!rt.c)return '<span class="rate-cnt">Novo perfil · ainda sem avaliações</span>';return starsHTML(rt.r)+'<span class="rate-num">'+rt.r.toFixed(1)+'</span><span class="rate-cnt">'+rt.c+' avaliações</span>';}
+function ratingHTML(d){const rt=ratingOf(d);if(!rt.c)return '<span class="rate-cnt">Ainda sem avaliações</span>';return starsHTML(rt.r)+'<span class="rate-num">'+rt.r.toFixed(1)+'</span><span class="rate-cnt">'+rt.c+(rt.c===1?' avaliação':' avaliações')+'</span>';}
+function rateInputHTML(d){
+  if(!USE_SUPABASE||!session||d.own||!d.dbId)return '';
+  const mine=d.myRating||0;
+  let s='<div style="margin-top:8px;display:flex;align-items:center;gap:4px;font-size:13px;color:var(--t2)"><span style="margin-right:4px">'+(mine?'Sua avaliação:':'Toque para avaliar:')+'</span>';
+  for(let i=1;i<=5;i++){s+='<span onclick="rateProfile('+d.id+','+i+')" title="'+i+' estrela'+(i>1?'s':'')+'" style="cursor:pointer;font-size:22px;line-height:1;color:'+(i<=mine?'#f5b301':'#d4d4d8')+'">★</span>';}
+  s+='</div>';
+  return s;
+}
+async function rateProfile(id,nota){
+  const d=byId(id);if(!d||!d.dbId||!USE_SUPABASE||!session||d.own)return;
+  let uid=null;try{const r=await supa.auth.getUser();uid=r&&r.data&&r.data.user?r.data.user.id:null;}catch(e){}
+  if(!uid){openAuth("login");return;}
+  try{
+    const {error}=await supa.from("avaliacoes").upsert({profile_id:d.dbId,user_id:uid,nota:nota},{onConflict:"profile_id,user_id"});
+    if(error)return;
+    const oldSum=(d.rating||0)*(d.rateCount||0);
+    if(d.myRating){d.rating=Math.round((oldSum-d.myRating+nota)/d.rateCount*10)/10;}
+    else{d.rateCount=(d.rateCount||0)+1;d.rating=Math.round((oldSum+nota)/d.rateCount*10)/10;}
+    d.myRating=nota;
+    openProfile(d.id);
+  }catch(e){}
+}
+window.rateProfile=rateProfile;
 function avatarHTML(d){return d.photo?'<img class="av-img" src="'+esc(d.photo)+'" alt="">':initials(d.name);}
 function byId(id){return DATA.find(x=>x.id===id);}
 
@@ -573,7 +596,7 @@ function openProfile(id){
         '<div class="pf-name">'+esc(d.name)+'</div>'+
         '<div class="pf-spec">'+esc(d.spec)+'</div>'+
         '<div class="pf-meta"><span class="rc-cat" style="margin:0">'+esc(d.cat)+'</span>'+ICON_REF+' Indicado por <b style="color:var(--t1)">&nbsp;'+esc(d.by)+'</b></div>'+
-        '<div class="pf-rate stars-wrap">'+ratingHTML(d)+'</div>'+
+        '<div class="pf-rate stars-wrap">'+ratingHTML(d)+'</div>'+rateInputHTML(d)+
         '<div class="pf-actions">'+
           (isMine?'<button class="btn btn-out" onclick="startOnboarding()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Editar perfil</button>':'')+
           '<a class="btn btn-primary" target="_blank" rel="noopener" onclick="logEvent(\''+(d.dbId||'')+'\',\'whatsapp\')" href="'+waLink(d.phone)+'">'+ICON_WA+' Solicitar orçamento</a>'+
@@ -585,6 +608,8 @@ function openProfile(id){
     '<div class="panel pf-section">'+
       '<h3>Sobre</h3>'+renderAboutHTML(d.desc)+
       '<div class="pf-detail"><b>Categoria</b><span>'+esc(d.cat)+'</span></div>'+
+      (d.atendimento?'<div class="pf-detail"><b>Atendimento</b><span>'+(d.atendimento==="online"?"Online":d.atendimento==="ambos"?"Online e presencial":"Presencial")+'</span></div>':'')+
+      (d.endereco?'<div class="pf-detail"><b>Endereço</b><span>'+esc(d.endereco)+'</span></div>':'')+
       '<div class="pf-detail"><b>Contato</b><span>'+fmtPhone(d.phone)+'</span></div>'+
       '<div class="pf-detail"><b>E-mail</b><span>'+(d.email?'<a href="mailto:'+esc(d.email)+'" onclick="logEvent(\''+(d.dbId||'')+'\',\'email\')" style="color:var(--blue)">'+esc(d.email)+'</a>':'Não informado')+'</span></div>'+
       '<div class="pf-socials">'+socialBtns(d)+'</div>'+
@@ -914,15 +939,24 @@ function startOnboarding(){
       '<div class="field"><label>Instagram</label><input id="obIg" value="'+esc(v.ig||"")+'" placeholder="@seuusuario ou link"></div>'+
       '<div class="field"><label>LinkedIn</label><input id="obLi" value="'+esc(v.linkedin||"")+'" placeholder="usuário ou link do LinkedIn"></div>'+
       '<div class="field"><label>Site</label><input id="obSite" value="'+esc(v.site||"")+'" placeholder="www.seusite.com.br"></div>'+
+      '<div class="field"><label>Atendimento</label><select id="obAtend" onchange="toggleEndereco()">'+
+        '<option value="presencial"'+((v.atendimento||"presencial")==="presencial"?" selected":"")+'>Presencial</option>'+
+        '<option value="online"'+(v.atendimento==="online"?" selected":"")+'>Online</option>'+
+        '<option value="ambos"'+(v.atendimento==="ambos"?" selected":"")+'>Online e presencial</option>'+
+      '</select></div>'+
+      '<div class="field" id="obEndWrap"><label>Endereço</label><input id="obEnd" value="'+esc(v.endereco||"")+'" placeholder="Rua, número, bairro e cidade — onde você atende"></div>'+
       '<div class="err" id="obErr"></div>'+
       '<button class="btn-full" onclick="publishProfile()">'+(existing?"Salvar alterações":"Publicar meu perfil")+'</button>'+
     '</div>';
   document.getElementById("navHome").classList.remove("active");
   fillSubcats(curMain,curSub);
+  toggleEndereco();
   const opEl=document.getElementById("obPhone");if(opEl)maskPhone(opEl);
   showView("onboarding");
 }
 window.startOnboarding=startOnboarding;
+function toggleEndereco(){var s=document.getElementById("obAtend"),w=document.getElementById("obEndWrap");if(!s||!w)return;w.style.display=(s.value==="online")?"none":"";}
+window.toggleEndereco=toggleEndereco;
 
 function publishProfile(){
   if(USE_SUPABASE)return publishProfileReal();
@@ -934,7 +968,7 @@ function publishProfile(){
   if(digits(phone).length<10)return document.getElementById("obErr").textContent="Informe um telefone/WhatsApp válido com DDD.";
   const existing=session.profileId!=null?byId(session.profileId):null;
   const data={name,spec,desc,phone,email,cat:document.getElementById("obCat").value,
-    ig:g("obIg"),facebook:"",linkedin:g("obLi"),site:g("obSite"),photo:tempPhoto,capa:tempCover,
+    ig:g("obIg"),facebook:"",linkedin:g("obLi"),site:g("obSite"),atendimento:g("obAtend"),endereco:(g("obAtend")==="online"?"":g("obEnd")),photo:tempPhoto,capa:tempCover,
     by:(session.invitedBy||"Fundador"),note:"",own:true,fresh:true};
   if(existing){Object.assign(existing,data);}
   else{data.id=nextId++;DATA.unshift(data);session.profileId=data.id;}
@@ -955,7 +989,7 @@ async function loadCommentsDB(d){
 }
 function mapRow(r,uid){return {id:nextId++,dbId:r.id,uid:r.user_id,own:!!(uid&&r.user_id===uid),fresh:true,
   name:r.nome,spec:r.especialidade||"",cat:r.categoria||"",desc:r.descricao||"",
-  phone:r.telefone||"",email:r.email||"",ig:r.instagram||"",facebook:r.facebook||"",linkedin:r.linkedin||"",site:r.site||"",
+  phone:r.telefone||"",email:r.email||"",ig:r.instagram||"",facebook:r.facebook||"",linkedin:r.linkedin||"",site:r.site||"",atendimento:r.atendimento||"",endereco:r.endereco||"",
   photo:r.foto_url||"",capa:r.capa_url||"",by:r.indicado_por||"perfil próprio",note:""};}
 function markOwn(uid){DATA.forEach(d=>{if(d.dbId!==undefined)d.own=!!(uid&&d.uid===uid);});}
 function setSessionFromUser(u){const md=u.user_metadata||{};let ph=md.phone||"";if(!ph&&u.phone){ph=fmtPhone((""+u.phone).replace(/^\+?55/,""));}
@@ -963,6 +997,10 @@ function setSessionFromUser(u){const md=u.user_metadata||{};let ph=md.phone||"";
 async function loadProfiles(uid){
   try{const {data,error}=await supa.from("profiles").select("*").eq("publicado",true).order("created_at",{ascending:false});
     if(!error&&data){data.forEach(r=>DATA.unshift(mapRow(r,uid)));}}catch(e){}
+  try{const {data:rts}=await supa.from("avaliacoes").select("profile_id,user_id,nota");
+    if(rts){const agg={};rts.forEach(function(x){var a=agg[x.profile_id]||(agg[x.profile_id]={s:0,c:0,m:0});a.s+=x.nota;a.c++;if(uid&&x.user_id===uid)a.m=x.nota;});
+      DATA.forEach(function(d){var a=agg[d.dbId];if(a){d.rating=Math.round(a.s/a.c*10)/10;d.rateCount=a.c;d.myRating=a.m;}});}
+  }catch(e){}
   document.getElementById("sPros").textContent=DATA.length;
 }
 async function initSupabase(){
@@ -1047,9 +1085,17 @@ async function uploadCover(uid){
 }
 async function saveProfileRow(editing,dbId,row){
   const run=r=> editing ? supa.from("profiles").update(r).eq("id",dbId).select().single() : supa.from("profiles").insert(r).select().single();
-  let res=await run(row);
-  if(res.error&&/'?site'?/i.test(res.error.message||"")&&/column|schema|find/i.test(res.error.message||"")){const r2=Object.assign({},row);delete r2.site;res=await run(r2);}
-  if(res.error&&/capa_url/i.test(res.error.message||"")){const r2=Object.assign({},row);delete r2.capa_url;res=await run(r2);}
+  let work=Object.assign({},row);
+  let res=await run(work);
+  let guard=0;
+  while(res.error && guard++<6 && /column|schema cache|could not find/i.test(res.error.message||"")){
+    let stripped=false;
+    ["atendimento","endereco","site","capa_url"].forEach(function(k){
+      if((k in work) && new RegExp("'?"+k+"'?","i").test(res.error.message||"")){delete work[k];stripped=true;}
+    });
+    if(!stripped)break;
+    res=await run(work);
+  }
   return res;
 }
 async function publishProfileReal(){
@@ -1074,7 +1120,7 @@ async function publishProfileReal(){
   const row={user_id:user.id,nome:name,especialidade:spec,categoria:document.getElementById("obCat").value,
     descricao:desc,telefone:phone,email,cidade:session.city||"",congregacao:session.cong||"",
     indicado_por:(session.invitedBy||"Fundador"),
-    instagram:g("obIg"),facebook:"",linkedin:g("obLi"),site:g("obSite"),foto_url,capa_url,publicado:true};
+    instagram:g("obIg"),facebook:"",linkedin:g("obLi"),site:g("obSite"),atendimento:g("obAtend"),endereco:(g("obAtend")==="online"?"":g("obEnd")),foto_url,capa_url,publicado:true};
   try{
     if(editing){
       const {data,error}=await saveProfileRow(true,existingCard.dbId,row);
