@@ -1264,6 +1264,7 @@ function openHelp(){
   html+='<div style="font-size:14px;line-height:1.6;color:var(--t1)">';
   FAQ.forEach(function(f){html+='<h4 style="margin:16px 0 4px;font-size:15px;color:var(--t1)">'+f.q+'</h4><p style="margin:0 0 10px">'+f.a+'</p>';});
   html+='</div>';
+  html+='<div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--line2);font-size:14px;color:var(--t1)">Ainda precisa de ajuda? Fale com o <a href="https://wa.me/5551993128323" target="_blank" rel="noopener" style="color:#1f9d55;font-weight:700;text-decoration:underline">Suporte</a>.</div>';
   document.getElementById("legalContent").innerHTML=html;
   document.getElementById("legalModal").classList.add("show");
 }
