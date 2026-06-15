@@ -609,7 +609,7 @@ function openProfile(id){
       '<h3>Sobre</h3>'+renderAboutHTML(d.desc)+
       '<div class="pf-detail"><b>Categoria</b><span>'+esc(d.cat)+'</span></div>'+
       (d.atendimento?'<div class="pf-detail"><b>Atendimento</b><span>'+(d.atendimento==="online"?"Online":d.atendimento==="ambos"?"Online e presencial":"Presencial")+'</span></div>':'')+
-      (d.endereco?'<div class="pf-detail"><b>Endereço</b><span>'+esc(d.endereco)+'</span></div>':'')+
+      ((d.endereco&&d.mostrar_endereco!==false)?'<div class="pf-detail"><b>Endereço</b><span>'+esc(d.endereco)+'</span></div>':'')+
       '<div class="pf-detail"><b>Contato</b><span>'+fmtPhone(d.phone)+'</span></div>'+
       '<div class="pf-detail"><b>E-mail</b><span>'+(d.email?'<a href="mailto:'+esc(d.email)+'" onclick="logEvent(\''+(d.dbId||'')+'\',\'email\')" style="color:var(--blue)">'+esc(d.email)+'</a>':'Não informado')+'</span></div>'+
       '<div class="pf-socials">'+socialBtns(d)+'</div>'+
@@ -909,7 +909,7 @@ function startOnboarding(){
   const v=existing||{};
   const pd=parseDesc(v.desc||"");
   var curSub=v.cat||"";
-  var curMain=SUB_TO_MAIN[curSub]||MAINS[0];
+  var curMain=mainOf(curSub)||MAINS[0];
   onboarding.innerHTML=
     '<button class="back" onclick="goFeed()">'+ICON_BACK+' Voltar ao feed</button>'+
     '<div class="panel pf-section">'+
@@ -944,7 +944,9 @@ function startOnboarding(){
         '<option value="online"'+(v.atendimento==="online"?" selected":"")+'>Online</option>'+
         '<option value="ambos"'+(v.atendimento==="ambos"?" selected":"")+'>Online e presencial</option>'+
       '</select></div>'+
-      '<div class="field" id="obEndWrap"><label>Endereço</label><input id="obEnd" value="'+esc(v.endereco||"")+'" placeholder="Rua, número, bairro e cidade — onde você atende"></div>'+
+      '<div class="field" id="obEndWrap"><label>Endereço</label><input id="obEnd" value="'+esc(v.endereco||"")+'" placeholder="Rua, número, bairro e cidade — onde você atende">'+
+        '<label style="display:flex;gap:7px;align-items:center;margin-top:8px;font-size:12.5px;color:var(--t2);cursor:pointer"><input type="checkbox" id="obEndShow"'+((v.mostrar_endereco===false)?"":" checked")+'> Mostrar meu endereço no perfil (se desmarcar, fica visível só o tipo de atendimento)</label>'+
+      '</div>'+
       '<div class="err" id="obErr"></div>'+
       '<button class="btn-full" onclick="publishProfile()">'+(existing?"Salvar alterações":"Publicar meu perfil")+'</button>'+
     '</div>';
@@ -968,7 +970,7 @@ function publishProfile(){
   if(digits(phone).length<10)return document.getElementById("obErr").textContent="Informe um telefone/WhatsApp válido com DDD.";
   const existing=session.profileId!=null?byId(session.profileId):null;
   const data={name,spec,desc,phone,email,cat:document.getElementById("obCat").value,
-    ig:g("obIg"),facebook:"",linkedin:g("obLi"),site:g("obSite"),atendimento:g("obAtend"),endereco:(g("obAtend")==="online"?"":g("obEnd")),photo:tempPhoto,capa:tempCover,
+    ig:g("obIg"),facebook:"",linkedin:g("obLi"),site:g("obSite"),atendimento:g("obAtend"),endereco:(g("obAtend")==="online"?"":g("obEnd")),mostrar_endereco:((document.getElementById("obEndShow")||{}).checked!==false),photo:tempPhoto,capa:tempCover,
     by:(session.invitedBy||"Fundador"),note:"",own:true,fresh:true};
   if(existing){Object.assign(existing,data);}
   else{data.id=nextId++;DATA.unshift(data);session.profileId=data.id;}
@@ -989,7 +991,7 @@ async function loadCommentsDB(d){
 }
 function mapRow(r,uid){return {id:nextId++,dbId:r.id,uid:r.user_id,own:!!(uid&&r.user_id===uid),fresh:true,
   name:r.nome,spec:r.especialidade||"",cat:r.categoria||"",desc:r.descricao||"",
-  phone:r.telefone||"",email:r.email||"",ig:r.instagram||"",facebook:r.facebook||"",linkedin:r.linkedin||"",site:r.site||"",atendimento:r.atendimento||"",endereco:r.endereco||"",
+  phone:r.telefone||"",email:r.email||"",ig:r.instagram||"",facebook:r.facebook||"",linkedin:r.linkedin||"",site:r.site||"",atendimento:r.atendimento||"",endereco:r.endereco||"",mostrar_endereco:(r.mostrar_endereco!==false),
   photo:r.foto_url||"",capa:r.capa_url||"",by:r.indicado_por||"perfil próprio",note:""};}
 function markOwn(uid){DATA.forEach(d=>{if(d.dbId!==undefined)d.own=!!(uid&&d.uid===uid);});}
 function setSessionFromUser(u){const md=u.user_metadata||{};let ph=md.phone||"";if(!ph&&u.phone){ph=fmtPhone((""+u.phone).replace(/^\+?55/,""));}
@@ -1090,7 +1092,7 @@ async function saveProfileRow(editing,dbId,row){
   let guard=0;
   while(res.error && guard++<6 && /column|schema cache|could not find/i.test(res.error.message||"")){
     let stripped=false;
-    ["atendimento","endereco","site","capa_url"].forEach(function(k){
+    ["atendimento","endereco","mostrar_endereco","site","capa_url"].forEach(function(k){
       if((k in work) && new RegExp("'?"+k+"'?","i").test(res.error.message||"")){delete work[k];stripped=true;}
     });
     if(!stripped)break;
@@ -1120,7 +1122,7 @@ async function publishProfileReal(){
   const row={user_id:user.id,nome:name,especialidade:spec,categoria:document.getElementById("obCat").value,
     descricao:desc,telefone:phone,email,cidade:session.city||"",congregacao:session.cong||"",
     indicado_por:(session.invitedBy||"Fundador"),
-    instagram:g("obIg"),facebook:"",linkedin:g("obLi"),site:g("obSite"),atendimento:g("obAtend"),endereco:(g("obAtend")==="online"?"":g("obEnd")),foto_url,capa_url,publicado:true};
+    instagram:g("obIg"),facebook:"",linkedin:g("obLi"),site:g("obSite"),atendimento:g("obAtend"),endereco:(g("obAtend")==="online"?"":g("obEnd")),mostrar_endereco:((document.getElementById("obEndShow")||{}).checked!==false),foto_url,capa_url,publicado:true};
   try{
     if(editing){
       const {data,error}=await saveProfileRow(true,existingCard.dbId,row);
