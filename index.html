@@ -375,7 +375,7 @@ function openSharedProfileIfAny(){
 function shareProfile(id){
   const d=byId(id);if(!d)return;
   const link=profileLinkFor(d);
-  const msg="Olá! 😊\n\nEstou compartilhando o perfil profissional de "+d.name+(d.spec?" — "+d.spec:"")+" no Portal Brothers.\n\nSe você estiver procurando um profissional nessa área ou conhecer alguém que possa precisar, acesse o perfil pelo link abaixo para conhecer melhor o trabalho, os serviços oferecidos e as formas de contato.\n\n🔗 "+link;
+  const msg="Olá!\n\nEstou compartilhando o perfil profissional de "+d.name+(d.spec?" — "+d.spec:"")+" no Portal Brothers.\n\nSe você estiver procurando um profissional nessa área ou conhecer alguém que possa precisar, acesse o perfil pelo link abaixo para conhecer melhor o trabalho, os serviços oferecidos e as formas de contato.\n\n"+link;
   window.open("https://wa.me/?text="+encodeURIComponent(msg),"_blank","noopener");
 }
 window.shareProfile=shareProfile;
@@ -566,7 +566,7 @@ function showView(v){
 
 function invitesPanelHTML(){
   const link=inviteLinkFor(session.name||"");
-  const wa="https://wa.me/?text="+encodeURIComponent("Olá! 😊\n\nQuero te convidar para participar do Portal Brothers, um espaço criado para irmãos divulgarem seus serviços e serem encontrados por outros irmãos da nossa comunidade de discípulos.\n\nCadastre-se gratuitamente pelo meu link:\n\n"+link+"\n\nSerá muito bom ter você conosco! 🤝\n\nDeus Abençoe!");
+  const wa="https://wa.me/?text="+encodeURIComponent("Olá!\n\nQuero te convidar para participar do Portal Brothers, um espaço criado para irmãos divulgarem seus serviços e serem encontrados por outros irmãos da nossa comunidade de discípulos.\n\nCadastre-se gratuitamente pelo meu link:\n\n"+link+"\n\nSerá muito bom ter você conosco!\n\nDeus Abençoe!");
   const mail="mailto:?subject="+encodeURIComponent("Convite para o Brothers")+"&body="+encodeURIComponent("Você está convidado para o Brothers, portal de serviços da comunidade. Cadastre-se pelo meu link de convite:\n\n"+link);
   return '<div class="panel pf-section">'+
     '<h3>Seu link de convite</h3>'+
@@ -849,8 +849,33 @@ function doLogin(){
 }
 window.doLogin=doLogin;
 
-function logout(){if(USE_SUPABASE){try{supa.auth.signOut();}catch(e){}markOwn(null);}session=null;lset("brothers_session",null);renderNav();renderFeed();goFeed();}
+function logout(){
+  session=null;
+  if(USE_SUPABASE&&typeof supa!=="undefined"&&supa){try{supa.auth.signOut();}catch(e){}}
+  try{Object.keys(localStorage).forEach(function(k){if(k.indexOf("sb-")===0||k==="brothers_session")localStorage.removeItem(k);});}catch(e){}
+  try{location.reload();return;}catch(e){}
+  try{markOwn(null);renderNav();renderFeed();goFeed();}catch(e){}
+}
 window.logout=logout;
+
+async function deleteProfile(){
+  const existing=(session&&session.profileId!=null)?byId(session.profileId):null;
+  if(!confirm("Tem certeza que deseja excluir seu perfil?\n\nEle deixará de aparecer no portal e esta ação não pode ser desfeita. Sua conta continua, mas sem perfil publicado."))return;
+  if(USE_SUPABASE&&typeof supa!=="undefined"&&supa){
+    if(!existing||!existing.dbId){alert("Não encontramos seu perfil para excluir.");return;}
+    try{
+      const {error}=await supa.from("profiles").delete().eq("id",existing.dbId);
+      if(error){alert("Não foi possível excluir agora: "+error.message);return;}
+    }catch(e){alert("Não foi possível excluir agora. Tente novamente em instantes.");return;}
+  }
+  if(existing){const i=DATA.findIndex(function(d){return d.id===existing.id;});if(i>=0)DATA.splice(i,1);}
+  if(session)session.profileId=null;
+  try{lset("brothers_session",session);}catch(e){}
+  alert("Seu perfil foi excluído. Você não aparece mais no portal.");
+  try{location.reload();return;}catch(e){}
+  try{renderNav();renderFeed();goFeed();}catch(e){}
+}
+window.deleteProfile=deleteProfile;
 
 function renderNav(){
   const el=document.getElementById("navAuth");
@@ -949,6 +974,7 @@ function startOnboarding(){
       '</div>'+
       '<div class="err" id="obErr"></div>'+
       '<button class="btn-full" onclick="publishProfile()">'+(existing?"Salvar alterações":"Publicar meu perfil")+'</button>'+
+      (existing?'<div style="text-align:center;margin-top:18px"><span onclick="deleteProfile()" style="font-weight:700;color:#cc1016;cursor:pointer;font-size:13.5px;border-bottom:1px solid rgba(204,16,22,.5)" title="Remover seu perfil do portal">Excluir meu perfil</span><div style="font-size:11.5px;color:var(--t3);margin-top:5px">Para quem não quer mais aparecer no portal.</div></div>':'')+
     '</div>';
   document.getElementById("navHome").classList.remove("active");
   fillSubcats(curMain,curSub);
